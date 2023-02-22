@@ -1,152 +1,130 @@
 import 'dart:async';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:health_track_app/business_logic/models/chart_data.dart';
+import 'package:health_track_app/business_logic/models/initialstepcountdb.dart';
 import 'package:health_track_app/business_logic/models/stepcountdb.dart';
-import 'package:health_track_app/business_logic/utils/constants/utils_helper.dart';
-import 'package:health_track_app/main.dart';
-import 'package:health_track_app/services/locator/service_locator.dart';
-import 'package:intl/intl.dart';
+import 'package:health_track_app/services/isar_database/isar_service.dart';
 import 'package:isar/isar.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:workmanager/workmanager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StepCounterViewModel extends ChangeNotifier {
   //variable declare
   late Stream<StepCount> _stepCountStream;
   late Stream<PedestrianStatus> _pedestrianStatusStream;
-  String _status = "?", _steps = "0";
-  Isar? isar;
-  StepCountDB _stepcountdb = StepCountDB();
+  int _steps = 0;
+
+  List<InitialStepCountDB> _initialStepDB = [];
+  List<StepCountDB> _StepDB = [];
   List<StepCountDB> _stepcountdbList = [];
+  int _firstFlag = 0;
 
   //getter
-  String get getStatus => _status;
-  String get getSteps => _steps;
-  StepCountDB get getStepcountdb => _stepcountdb;
-  List<StepCountDB> get getStepcountdbList => _stepcountdbList;
+  List<InitialStepCountDB> get getInitialStepDB => _initialStepDB;
+  List<StepCountDB> get getStepDB => _StepDB;
+  int get getFirstFlag => _firstFlag;
 
-  //setter
-  set setSteps(String val) => _steps = val;
-  set setStatus(String val) => _status = val;
+  void checkBackgroundSteps() {
+    final isarService = IsarService();
+    isarService.db.then((isar) async {
+      final stepCollection = isar.initialStepCountDBs;
+      _initialStepDB = (await stepCollection.where().findAll());
 
-  void initDatabase() async {
-    isar ??= await Isar.open([StepCountDBSchema]);
+      isarService.db.then((isar) async {
+        final astepCollection = isar.stepCountDBs;
+        _StepDB = (await astepCollection.where().findAll());
 
-    initialDataDB();
-  }
-
-  void addStep(StepCountDB step) async {
-    if (isar != null) {
-      isar!.writeTxn(() async {
-        int id = await isar!.stepCountDBs.put(step);
-        return id;
+        if (_initialStepDB != null && _StepDB != null) {
+          _steps = _StepDB[0].steps - _initialStepDB[0].steps;
+          setDataDB(_steps, isarService);
+        }
       });
+    });
 
-      _stepcountdb = step;
-      notifyListeners();
-    }
+    isarService.db.then((isar) async {
+      final stepCollection = isar.initialStepCountDBs;
+      _initialStepDB = (await stepCollection.where().findAll());
+
+      if (_initialStepDB != null) {
+        int tempStepCount = _steps - _initialStepDB[0].steps;
+
+        print("tempStepCount" + tempStepCount.toString());
+
+        setDataDB(tempStepCount, isarService);
+      }
+    });
   }
 
-  Future<void> showDataDB() async {
-    // _stepcountdbList = await isar!.stepCountDBs
-    //     .where()
-    //     .distinctByDate()
-    //     .distinctBySteps()
-    //     .distinctByStatus()
-    //     .findAll();
+  void setFlagValue() async {
+    print("flag Value" + "1");
 
-    DateTime mdateToday =
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-
-    if (isar != null) {
-      _stepcountdbList = await isar!.stepCountDBs
-          .where()
-          .filter()
-          .dateEqualTo(mdateToday)
-          .distinctByDate()
-          .findAll();
-      notifyListeners();
-    }
+    SharedPreferences _pref = await SharedPreferences.getInstance();
+    _pref.setInt("flagValue", 1);
   }
 
-  void initialDataDB() {
+  void setDataDB(int stepValue, IsarService isarService) async {
     DateTime dateToday =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
-    final aStepCountDB = StepCountDB()
-      ..steps = "0"
-      ..status = "?"
+    final stepCounter = StepCountDB()
+      ..steps = stepValue
+      ..status = "Walking"
       ..date = dateToday;
 
-    addStep(aStepCountDB);
+    isarService.createStep(stepCounter);
+
+    print("added" + stepCounter.steps.toString());
+
+    //notifyListeners();
   }
 
-  void setDataDB() async {
+  void saveInitialStepDB(StepCount stepValue, IsarService isarService) async {
     DateTime dateToday =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
-    final aStepCountDB = StepCountDB()
-      ..steps = _steps
-      ..status = _status
-      ..date = dateToday;
+    final stepCounter = InitialStepCountDB()
+      ..steps = stepValue.steps
+      ..date = stepValue.timeStamp;
 
-    addStep(aStepCountDB);
+    isarService.createInitialStep(stepCounter);
+
+    print("added" + stepCounter.steps.toString());
+
+    //notifyListeners();
   }
 
   void onStepCount(StepCount event) {
     print(event);
 
-    showDataDB();
+    final isarService = IsarService();
+    int tempStep;
 
-    if (_stepcountdbList.isNotEmpty) {
-      _steps = (event.steps - int.parse(_stepcountdbList[0].steps)).toString();
-    }
-    // _steps = event.steps.toString();
+    isarService.db.then((isar) async {
+      final stepCollection = isar.initialStepCountDBs;
+      _initialStepDB = (await stepCollection.where().findAll());
 
-    //_steps = event.steps.toString();
-
-    //setDataDB();
-
-    // StepCountDB stepCountDB = StepCountDB(_steps, _status);
-    // addStep(stepCountDB);
+      if (_initialStepDB != null) {
+        _steps = event.steps - _initialStepDB[0].steps;
+        setDataDB(_steps, isarService);
+      }
+    });
 
     notifyListeners();
   }
 
   void onPedestrianStatusChanged(PedestrianStatus event) {
-    print(event);
+    //print(event);
 
-    _status = event.status;
-
-    // Workmanager()
-    //     .registerOneOffTask(simpleTaskKey, simpleTaskKey, inputData: null
-    //         // inputData: <String, dynamic>{
-    //         //   'int': 1,
-    //         //   'bool': true,
-    //         //   'double': 1.0,
-    //         //   'string': _steps,
-    //         //   'array': [1, 2, 3],
-    //         // },
-    //         );
-
-    // Workmanager().registerPeriodicTask(
-    //   simplePeriodicTask,
-    //   simplePeriodicTask,
-    //   frequency: const Duration(minutes: 15),
-    // );
-
+    // _status = event.status;
     notifyListeners();
   }
 
   void onPedestrianStatusError(error) {
     print('onPedestrianStatusError: $error');
 
-    _status = 'Pedestrian Status not available';
+    // _status = 'Pedestrian Status not available';
 
-    print(_status);
+    // print(_status);
 
     notifyListeners();
   }
@@ -154,45 +132,25 @@ class StepCounterViewModel extends ChangeNotifier {
   void onStepCountError(error) {
     print('onStepCountError: $error');
 
-    _steps = 'Step Count not available';
+    // _steps = 'Step Count not available';
 
     notifyListeners();
   }
 
-  Future<void> initPlatformState() async {
+  Future<void> initPlatformState(IsarService isarService) async {
     if (await Permission.activityRecognition.request().isGranted) {
-      //StepCounterViewModel stepCounterProvider = StepCounterViewModel();
-      //stepCounterProvider.initialDataDB();
-
       _pedestrianStatusStream = await Pedometer.pedestrianStatusStream;
       _stepCountStream = await Pedometer.stepCountStream;
+
+      StepCount test = await Pedometer.stepCountStream.first;
+
+      saveInitialStepDB(await Pedometer.stepCountStream.first, isarService);
 
       /// Listen to streams and handle errors
       _stepCountStream.listen(onStepCount).onError(onStepCountError);
       _pedestrianStatusStream
           .listen(onPedestrianStatusChanged)
           .onError(onPedestrianStatusError);
-
-      // _pedestrianStatusStream = Pedometer.pedestrianStatusStream;
-      // _pedestrianStatusStream
-      //     .listen(onPedestrianStatusChanged)
-      //     .onError(onPedestrianStatusError);
-
-      // _stepCountStream = Pedometer.stepCountStream;
-      // _stepCountStream.listen(onStepCount).onError(onStepCountError);
-
-      notifyListeners();
     }
-  }
-
-  Future<void> repeatState() async {
-    _pedestrianStatusStream = await Pedometer.pedestrianStatusStream;
-    _stepCountStream = await Pedometer.stepCountStream;
-
-    /// Listen to streams and handle errors
-    _stepCountStream.listen(onStepCount).onError(onStepCountError);
-    _pedestrianStatusStream
-        .listen(onPedestrianStatusChanged)
-        .onError(onPedestrianStatusError);
   }
 }

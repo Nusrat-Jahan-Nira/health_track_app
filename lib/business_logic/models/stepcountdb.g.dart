@@ -30,7 +30,7 @@ const StepCountDBSchema = CollectionSchema(
     r'steps': PropertySchema(
       id: 2,
       name: r'steps',
-      type: IsarType.string,
+      type: IsarType.long,
     )
   },
   estimateSize: _stepCountDBEstimateSize,
@@ -54,7 +54,6 @@ int _stepCountDBEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.status.length * 3;
-  bytesCount += 3 + object.steps.length * 3;
   return bytesCount;
 }
 
@@ -66,7 +65,7 @@ void _stepCountDBSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.date);
   writer.writeString(offsets[1], object.status);
-  writer.writeString(offsets[2], object.steps);
+  writer.writeLong(offsets[2], object.steps);
 }
 
 StepCountDB _stepCountDBDeserialize(
@@ -79,7 +78,7 @@ StepCountDB _stepCountDBDeserialize(
   object.date = reader.readDateTime(offsets[0]);
   object.id = id;
   object.status = reader.readString(offsets[1]);
-  object.steps = reader.readString(offsets[2]);
+  object.steps = reader.readLong(offsets[2]);
   return object;
 }
 
@@ -95,7 +94,7 @@ P _stepCountDBDeserializeProp<P>(
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -435,55 +434,47 @@ extension StepCountDBQueryFilter
   }
 
   QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'steps',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
   QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition>
       stepsGreaterThan(
-    String value, {
+    int value, {
     bool include = false,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
         property: r'steps',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
   QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsLessThan(
-    String value, {
+    int value, {
     bool include = false,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
         property: r'steps',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
   QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsBetween(
-    String lower,
-    String upper, {
+    int lower,
+    int upper, {
     bool includeLower = true,
     bool includeUpper = true,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
@@ -492,76 +483,6 @@ extension StepCountDBQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'steps',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'steps',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'steps',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'steps',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition> stepsIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'steps',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<StepCountDB, StepCountDB, QAfterFilterCondition>
-      stepsIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'steps',
-        value: '',
       ));
     });
   }
@@ -678,10 +599,9 @@ extension StepCountDBQueryWhereDistinct
     });
   }
 
-  QueryBuilder<StepCountDB, StepCountDB, QDistinct> distinctBySteps(
-      {bool caseSensitive = true}) {
+  QueryBuilder<StepCountDB, StepCountDB, QDistinct> distinctBySteps() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'steps', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'steps');
     });
   }
 }
@@ -706,7 +626,7 @@ extension StepCountDBQueryProperty
     });
   }
 
-  QueryBuilder<StepCountDB, String, QQueryOperations> stepsProperty() {
+  QueryBuilder<StepCountDB, int, QQueryOperations> stepsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'steps');
     });

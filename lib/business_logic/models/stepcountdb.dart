@@ -6,7 +6,7 @@ part 'stepcountdb.g.dart';
 class StepCountDB {
   Id id = Isar.autoIncrement;
 
-  String steps = "0";
+  int steps = 0;
 
   String status = "?";
 
