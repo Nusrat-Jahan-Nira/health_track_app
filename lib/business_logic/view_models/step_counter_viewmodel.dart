@@ -35,7 +35,12 @@ class StepCounterViewModel extends ChangeNotifier {
         _StepDB = (await astepCollection.where().findAll());
 
         if (_initialStepDB != null && _StepDB != null) {
-          _steps = _StepDB[0].steps - _initialStepDB[0].steps;
+          if (_StepDB[0].steps > _initialStepDB[0].steps) {
+            _steps = _StepDB[0].steps - _initialStepDB[0].steps;
+          } else {
+            _steps = _initialStepDB[0].steps - _StepDB[0].steps;
+          }
+
           setDataDB(_steps, isarService);
         }
       });
