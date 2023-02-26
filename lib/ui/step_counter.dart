@@ -1,25 +1,13 @@
 // import 'package:fl_chart/fl_chart.dart';
-import 'dart:async';
-import 'dart:math';
-
-import 'package:auto_start_flutter/auto_start_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:health_track_app/business_logic/controllers/notification_controller.dart';
-import 'package:health_track_app/business_logic/models/chart_data.dart';
 import 'package:health_track_app/business_logic/models/stepcountdb.dart';
-import 'package:health_track_app/business_logic/utils/constants/utils_helper.dart';
 import 'package:health_track_app/business_logic/utils/styles/text_styles.dart';
 import 'package:health_track_app/business_logic/view_models/step_counter_viewmodel.dart';
 import 'package:health_track_app/main.dart';
 import 'package:health_track_app/services/isar_database/isar_service.dart';
-import 'package:health_track_app/services/locator/service_locator.dart';
 import 'package:health_track_app/ui/components/common/title_text_widget.dart';
 import 'package:health_track_app/ui/components/step_counter/progress_title_widget.dart';
-import 'package:pedometer/pedometer.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 class StepCounterScreen extends StatefulWidget {
@@ -42,22 +30,6 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
     stepCounterProvider.initPlatformState(isarService);
 
     super.initState();
-
-    initAutoStart();
-  }
-
-  //initializing the autoStart with the first build.
-  Future<void> initAutoStart() async {
-    try {
-      //check auto-start availability.
-      var test = await (isAutoStartAvailable as FutureOr<bool>);
-      print(test);
-      //if available then navigate to auto-start setting page.
-      if (test) await getAutoStartPermission();
-    } on PlatformException catch (e) {
-      print(e);
-    }
-    if (!mounted) return;
   }
 
   // void calculate data

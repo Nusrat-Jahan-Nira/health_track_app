@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_service/flutter_foreground_service.dart';
 import 'package:health_track_app/business_logic/controllers/notification_controller.dart';
 import 'package:health_track_app/business_logic/utils/constants/utils_helper.dart';
 import 'package:health_track_app/business_logic/utils/styles/color_styles.dart';
@@ -79,6 +80,13 @@ Future<void> main() async {
   //  aisarService.openIsar();
 
   runApp(MyApp());
+
+  startForegroundService();
+}
+
+void startForegroundService() async {
+  ForegroundService().start();
+  debugPrint("Started service");
 }
 
 class MyApp extends StatelessWidget {
