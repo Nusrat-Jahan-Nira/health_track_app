@@ -12,17 +12,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 const fetchBackground = "fetchBackground";
+const fetchBackground24 = "fetchBackground24";
+const simpleTask = "simpleTask";
+StepCounterViewModel stepCounterProvider = StepCounterViewModel();
 
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     switch (task) {
+      case simpleTask:
+        final isarService = IsarService();
+        stepCounterProvider.initPlatformState(isarService);
+
+        break;
       case fetchBackground:
         print("Yes!!!!!!!!!");
-        StepCounterViewModel stepCounterProvider = StepCounterViewModel();
+
         stepCounterProvider.checkBackgroundSteps();
 
         // Code to run in background
 
+        break;
+      case fetchBackground24:
+        final isarService = IsarService();
+        stepCounterProvider.initPlatformState(isarService);
+        stepCounterProvider.checkBackgroundSteps();
         break;
     }
     return Future.value(true);
@@ -44,6 +57,15 @@ Future<void> main() async {
     "1",
     fetchBackground,
     frequency: const Duration(minutes: 15),
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    ),
+  );
+
+  await Workmanager().registerPeriodicTask(
+    "1",
+    fetchBackground24,
+    frequency: const Duration(hours: 24),
     constraints: Constraints(
       networkType: NetworkType.connected,
     ),

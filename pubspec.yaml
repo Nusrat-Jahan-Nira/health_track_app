@@ -53,7 +53,7 @@ dependencies:
   intl: ^0.17.0
 
   shared_preferences: ^2.0.17
-
+  auto_start_flutter: ^0.1.1
 
 
 

@@ -1,7 +1,10 @@
 // import 'package:fl_chart/fl_chart.dart';
+import 'dart:async';
 import 'dart:math';
 
+import 'package:auto_start_flutter/auto_start_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:health_track_app/business_logic/controllers/notification_controller.dart';
 import 'package:health_track_app/business_logic/models/chart_data.dart';
 import 'package:health_track_app/business_logic/models/stepcountdb.dart';
@@ -39,6 +42,22 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
     stepCounterProvider.initPlatformState(isarService);
 
     super.initState();
+
+    initAutoStart();
+  }
+
+  //initializing the autoStart with the first build.
+  Future<void> initAutoStart() async {
+    try {
+      //check auto-start availability.
+      var test = await (isAutoStartAvailable as FutureOr<bool>);
+      print(test);
+      //if available then navigate to auto-start setting page.
+      if (test) await getAutoStartPermission();
+    } on PlatformException catch (e) {
+      print(e);
+    }
+    if (!mounted) return;
   }
 
   // void calculate data
@@ -58,6 +77,23 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
     double caloriesValue = (steps * 0.0566);
     String value = caloriesValue.toStringAsFixed(2);
     return double.parse(value);
+  }
+
+  @override
+  void dispose() {
+    Workmanager().registerOneOffTask(
+      simpleTask,
+      simpleTask,
+      inputData: <String, dynamic>{
+        'int': 1,
+        'bool': true,
+        'double': 1.0,
+        'string': 'string',
+        'array': [1, 2, 3],
+      },
+    );
+    // TODO: implement dispose
+    super.dispose();
   }
 
   @override
